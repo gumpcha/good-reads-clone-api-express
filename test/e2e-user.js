@@ -13,6 +13,7 @@ describe('users', () => {
       expect(res.status).to.be.equal(200);
       expect(res.body.email).to.be.equal(user.email);
       expect(res.body.password).to.be.equal(undefined);
+      expect(res.body.api_key).to.match(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$/);
 
       return res.body;
     };
