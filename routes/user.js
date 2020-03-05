@@ -46,4 +46,19 @@ router.post('/session', async function (req, res, next) {
 });
 
 
+router.get('/', async function (req, res, next) {
+  const user = users.find(user => `Bearer ${user.api_key}` == req.headers.authorization);
+  if (!user) {
+    return res.status(401).send({
+      code: 401,
+      message: 'invalid api_key',
+    });
+  }
+
+  res.send({
+    email: user.email,
+  });
+});
+
+
 module.exports = router;

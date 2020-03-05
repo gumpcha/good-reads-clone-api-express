@@ -1,20 +1,20 @@
 const api = exports;
 
 
-function call({method, url, header, body, code=200, expect}) {
+function call({method, url, auth, body, code=200, expect}) {
   const app = require('../app');
 
-  return $call({app, method, url, header, body, code, expect});
+  return $call({app, method, url, auth, body, code, expect});
 }
 
 
-function $call({app, method, url, header, body, code, expect}) {
+function $call({app, method, url, auth, body, code, expect}) {
   const request = require('supertest');
 
-  const $method = request(app)[method];
-  if (header) $method.set(header);
+  const $method = request(app)[method](url);
+  if (auth) $method.set('authorization', `Bearer ${auth}`);
 
-  return $method(url).send(body).expect(code).then(expect);
+  return $method.send(body).expect(code).then(expect);
 }
 
 
