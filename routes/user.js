@@ -46,6 +46,25 @@ router.post('/session', async function (req, res, next) {
 });
 
 
+router.delete('/session', async function (req, res, next) {
+  const user = users.find(user => `Bearer ${user.access_token}` == req.headers.authorization);
+
+  if (user) {
+    user.access_token = null;
+
+    return res.send({
+      code: 200,
+      message: 'OK',
+    });
+  } else {
+    return res.status(401).send({
+      code: 401,
+      message: 'invalid access_token',
+    });
+  }
+});
+
+
 router.get('/', async function (req, res, next) {
   const user = users.find(user => `Bearer ${user.access_token}` == req.headers.authorization);
   if (!user) {

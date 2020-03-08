@@ -115,4 +115,44 @@ describe('users', () => {
       expect,
     });
   });
+
+  it('should success to logout', async function () {
+    const expect = res => {
+      const { expect } = require('chai');
+
+      expect(res.status).to.be.equal(200);
+      expect(res.body.code).to.be.equal(200);
+      expect(res.body.message).to.be.equal('OK');
+
+      return res.body;
+    };
+
+    await api.call({
+      method: 'delete',
+      url: '/user/session',
+      auth: user.access_token,
+      expect,
+    });
+  });
+
+  it('should fail to query profile after logout', async function () {
+    const expect = res => {
+      const { expect } = require('chai');
+
+      expect(res.status).to.be.equal(401);
+      expect(res.body.code).to.be.equal(401);
+      expect(res.body.message).to.be.equal('invalid access_token');
+
+      return res.body;
+    };
+
+    await api.call({
+      method: 'get',
+      url: '/user',
+      auth: user.access_token,
+      code: 401,
+      expect,
+    });
+  });
+
 });
