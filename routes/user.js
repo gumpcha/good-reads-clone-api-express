@@ -17,13 +17,13 @@ router.post('/', async function (req, res, next) {
     id,
     email: req.body.email,
     password: await bcrypt.hash(req.body.password, 10),
-    api_key: jwt.sign({ id }, jwtSecret),
+    access_token: jwt.sign({ id }, jwtSecret),
   };
   users.push(user);
 
   res.send({
     email: user.email,
-    api_key: user.api_key,
+    access_token: user.access_token,
   });
 });
 
@@ -35,7 +35,7 @@ router.post('/session', async function (req, res, next) {
   if (match) {
     res.send({
       email: user.email,
-      api_key: user.api_key,
+      access_token: user.access_token,
     });
   } else {
     res.status(401).send({
@@ -47,11 +47,11 @@ router.post('/session', async function (req, res, next) {
 
 
 router.get('/', async function (req, res, next) {
-  const user = users.find(user => `Bearer ${user.api_key}` == req.headers.authorization);
+  const user = users.find(user => `Bearer ${user.access_token}` == req.headers.authorization);
   if (!user) {
     return res.status(401).send({
       code: 401,
-      message: 'invalid api_key',
+      message: 'invalid access_token',
     });
   }
 

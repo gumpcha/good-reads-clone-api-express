@@ -13,7 +13,7 @@ describe('users', () => {
       expect(res.status).to.be.equal(200);
       expect(res.body.email).to.be.equal(user.email);
       expect(res.body.password).to.be.equal(undefined);
-      expect(res.body.api_key).to.match(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$/);
+      expect(res.body.access_token).to.match(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$/);
 
       return res.body;
     };
@@ -59,7 +59,7 @@ describe('users', () => {
       expect(res.status).to.be.equal(200);
       expect(res.body.email).to.be.equal(user.email);
       expect(res.body.password).to.be.equal(undefined);
-      expect(res.body.api_key).to.match(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$/);
+      expect(res.body.access_token).to.match(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$/);
 
       return res.body;
     };
@@ -73,16 +73,16 @@ describe('users', () => {
       },
       expect,
     });
-    user.api_key = res.api_key;
+    user.access_token = res.access_token;
   });
 
-  it('should fail to query profile with invalid api_key', async function () {
+  it('should fail to query profile with invalid access_token', async function () {
     const expect = res => {
       const { expect } = require('chai');
 
       expect(res.status).to.be.equal(401);
       expect(res.body.code).to.be.equal(401);
-      expect(res.body.message).to.be.equal('invalid api_key');
+      expect(res.body.message).to.be.equal('invalid access_token');
 
       return res.body;
     };
@@ -96,14 +96,14 @@ describe('users', () => {
     });
   });
 
-  it('should success to query profile with valid api_key', async function () {
+  it('should success to query profile with valid access_token', async function () {
     const expect = res => {
       const { expect } = require('chai');
 
       expect(res.status).to.be.equal(200);
       expect(res.body.email).to.be.equal(user.email);
       expect(res.body.password).to.be.equal(undefined);
-      expect(res.body.api_key).to.be.equal(undefined);
+      expect(res.body.access_token).to.be.equal(undefined);
 
       return res.body;
     };
@@ -111,7 +111,7 @@ describe('users', () => {
     await api.call({
       method: 'get',
       url: '/user',
-      auth: user.api_key,
+      auth: user.access_token,
       expect,
     });
   });
