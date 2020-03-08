@@ -28,11 +28,38 @@ router.post('/', async function (req, res, next) {
 });
 
 
+router.delete('/', async function (req, res, next) {
+  const index = users.findIndex(user => `Bearer ${user.access_token}` == req.headers.authorization);
+
+  if (index > -1) {
+    users.splice(index, 1);
+
+    return res.send({
+      code: 200,
+      message: 'OK',
+    });
+  } else {
+    return res.status(401).send({
+      code: 401,
+      message: 'invalid access_token',
+    });
+  }
+});
+
+
 router.post('/session', async function (req, res, next) {
   const user = users.find(user => user.email == req.body.email);
+  if (!user) {
+    return res.status(401).send({
+      code: 401,
+      message: 'email/password mismatch',
+    });
+  }
 
   const match = await bcrypt.compare(req.body.password, user.password);
   if (match) {
+    user.access_token = jwt.sign({ id: user.id }, jwtSecret),
+
     res.send({
       email: user.email,
       access_token: user.access_token,
