@@ -35,7 +35,7 @@ describe('users', () => {
 
       expect(res.status).to.be.equal(401);
       expect(res.body.code).to.be.equal(401);
-      expect(res.body.message).to.be.equal('email/password mismatch');
+      expect(res.body.message).to.be.equal('email/password mismatch(1)');
 
       return res.body;
     };
@@ -205,7 +205,7 @@ describe('users', () => {
 
         expect(res.status).to.be.equal(401);
         expect(res.body.code).to.be.equal(401);
-        expect(res.body.message).to.be.equal('email/password mismatch');
+        expect(res.body.message).to.be.equal('email/password mismatch(0)');
 
         return res.body;
       };
