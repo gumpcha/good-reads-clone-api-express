@@ -24,10 +24,6 @@ class User {
     return UserModel.query().findOne(where);
   }
 
-  static async update(data) {
-    return UserModel.query().findOne(where);
-  }
-
   static async deleteByEmail(email) {
     return UserModel.query().findOne({ email }).delete();
   }
