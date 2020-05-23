@@ -1,10 +1,15 @@
 const api = require('./api');
+const UserService = require('../services/user');
 
 describe('users', () => {
   const user = {
     email: 'test@email.com',
     password: 'password',
   };
+
+  it('prepare: cleanup test user', async function() {
+    await UserService.deleteByEmail(user.email);
+  });
 
   it('should signup', async function() {
     const expect = res => {
@@ -28,6 +33,30 @@ describe('users', () => {
       expect,
     });
   });
+
+  it('should signup fail to same email', async function() {
+    const expect = res => {
+      const { expect } = require('chai');
+
+      expect(res.status).to.be.equal(409);
+      expect(res.body.code).to.be.equal(409);
+      expect(res.body.message).to.be.equal('already signed_up');
+
+      return res.body;
+    };
+
+    await api.call({
+      method: 'post',
+      url: '/user',
+      body: {
+        email: user.email,
+        password: user.password,
+      },
+      code: 409,
+      expect,
+    });
+  });
+
 
   it('should fail to login with invalid password', async function() {
     const expect = res => {

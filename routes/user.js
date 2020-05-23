@@ -5,21 +5,40 @@ const express = require('express');
 
 const router = express.Router();
 
+const UserService = require('../services/user');
 
-// memory db
-const users = [];
 
 const jwtSecret = 'FnYqIIHCBMNLemOZ';
 
+
+async function auth(req, res) {
+  const matched = req.headers.authorization.match(/^Bearer (.*)$/);
+  const access_token = matched && matched[1];
+  const user = await UserService.selectOne({ access_token });
+  if (!user) {
+    return res.status(401).send({
+      code: 401,
+      message: 'invalid access_token',
+    });
+  }
+
+  return user;
+}
+
+
 router.post('/', async function (req, res, next) {
-  const id = uuid.v4();
-  const user = {
-    id,
+  const exist = await UserService.selectOne({ email: req.body.email });
+  if (exist) {
+    return res.status(409).send({
+      code: 409,
+      message: 'already signed_up',
+    });
+  }
+
+  const user = await UserService.create({
     email: req.body.email,
-    password: await bcrypt.hash(req.body.password, 10),
-    access_token: jwt.sign({ id }, jwtSecret),
-  };
-  users.push(user);
+    password: req.body.password,
+  });
 
   res.send({
     email: user.email,
@@ -29,26 +48,18 @@ router.post('/', async function (req, res, next) {
 
 
 router.delete('/', async function (req, res, next) {
-  const index = users.findIndex(user => `Bearer ${user.access_token}` == req.headers.authorization);
+  const user = await auth(req, res);
+  await user.$query().delete();
 
-  if (index > -1) {
-    users.splice(index, 1);
-
-    return res.send({
-      code: 200,
-      message: 'OK',
-    });
-  } else {
-    return res.status(401).send({
-      code: 401,
-      message: 'invalid access_token',
-    });
-  }
+  return res.send({
+    code: 200,
+    message: 'OK',
+  });
 });
 
 
 router.post('/session', async function (req, res, next) {
-  const user = users.find(user => user.email == req.body.email);
+  const user = await UserService.selectOne({ email: req.body.email });
   if (!user) {
     return res.status(401).send({
       code: 401,
@@ -59,6 +70,7 @@ router.post('/session', async function (req, res, next) {
   const match = await bcrypt.compare(req.body.password, user.password);
   if (match) {
     user.access_token = jwt.sign({ id: user.id }, jwtSecret),
+    await user.$query().updateAndFetch();
 
     res.send({
       email: user.email,
@@ -74,32 +86,18 @@ router.post('/session', async function (req, res, next) {
 
 
 router.delete('/session', async function (req, res, next) {
-  const user = users.find(user => `Bearer ${user.access_token}` == req.headers.authorization);
+  const user = await auth(req, res);
+  await user.$query().patch({ access_token: null });
 
-  if (user) {
-    user.access_token = null;
-
-    return res.send({
-      code: 200,
-      message: 'OK',
-    });
-  } else {
-    return res.status(401).send({
-      code: 401,
-      message: 'invalid access_token',
-    });
-  }
+  return res.send({
+    code: 200,
+    message: 'OK',
+  });
 });
 
 
 router.get('/', async function (req, res, next) {
-  const user = users.find(user => `Bearer ${user.access_token}` == req.headers.authorization);
-  if (!user) {
-    return res.status(401).send({
-      code: 401,
-      message: 'invalid access_token',
-    });
-  }
+  const user = await auth(req, res);
 
   res.send({
     email: user.email,
