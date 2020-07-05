@@ -16,28 +16,30 @@ const jwtSecret = 'FnYqIIHCBMNLemOZ';
 const wrapAsync = fn => (req, res, next) => fn(req, res, next).catch(next);
 
 
-async function auth(req, res) {
+async function auth(req, res, next) {
   const matched = req.headers.authorization.match(/^Bearer (.*)$/);
   const access_token = matched && matched[1];
   const user = await UserService.selectOne({ access_token });
   if (!user) throw ApiError.UnauthorizedError('invalid access_token');
 
-  return user;
+  req.$user = user;
+
+  return next();
 }
 
 
-router.get   ('/', wrapAsync(selectUser));
 router.post  ('/', wrapAsync(createUser));
-router.delete('/', wrapAsync(deleteUser)); 
+router.get   ('/', wrapAsync(auth), wrapAsync(selectUser));
+router.delete('/', wrapAsync(auth), wrapAsync(deleteUser));
 router.post  ('/session', wrapAsync(loginUser));
-router.delete('/session', wrapAsync(logoutUser));
+router.delete('/session', wrapAsync(auth), wrapAsync(logoutUser));
 
 
 async function selectUser(req, res, next) {
-  const user = await auth(req, res);
+  const $user = req.$user;
 
   res.send({
-    email: user.email,
+    email: $user.email,
   });
 }
 
@@ -59,8 +61,9 @@ async function createUser(req, res, next) {
 
 
 async function deleteUser(req, res, next) {
-  const user = await auth(req, res);
-  await user.$query().delete();
+  const $user = req.$user;
+
+  await $user.$query().delete();
 
   return res.send({
     code: 200,
@@ -87,8 +90,9 @@ async function loginUser(req, res, next) {
 
 
 async function logoutUser(req, res, next) {
-  const user = await auth(req, res);
-  await user.$query().patch({ access_token: null });
+  const $user = req.$user;
+
+  await $user.$query().patch({ access_token: null });
 
   return res.send({
     code: 200,
