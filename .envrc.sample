@@ -1,0 +1,4 @@
+# direnv environment file
+# copy this file to .envrc and `direnv allow`
+
+use nvm 12
