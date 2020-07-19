@@ -11,8 +11,6 @@ const ApiError = require('../libs/error');
 
 
 
-const jwtSecret = 'FnYqIIHCBMNLemOZ';
-
 const wrapAsync = fn => (req, res, next) => fn(req, res, next).catch(next);
 
 
@@ -73,14 +71,7 @@ async function deleteUser(req, res, next) {
 
 
 async function loginUser(req, res, next) {
-  const user = await UserService.selectOne({ email: req.body.email });
-  if (!user) throw ApiError.UnauthorizedError('email/password mismatch(0)');
-
-  const match = await bcrypt.compare(req.body.password, user.password);
-  if (!match) throw ApiError.UnauthorizedError('email/password mismatch(1)');
-
-  user.access_token = jwt.sign({ id: user.id }, jwtSecret),
-  await user.$query().updateAndFetch();
+  const user = await UserService.login({ email: req.body.email, password: req.body.password });
 
   res.send({
     email: user.email,
