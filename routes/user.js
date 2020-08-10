@@ -3,108 +3,94 @@ const jwt = require('jsonwebtoken');
 const uuid = require('uuid');
 const express = require('express');
 
+
 const router = express.Router();
 
+const UserService = require('../services/user');
+const ApiError = require('../libs/error');
 
-// memory db
-const users = [];
 
-const jwtSecret = 'FnYqIIHCBMNLemOZ';
 
-router.post('/', async function (req, res, next) {
-  const id = uuid.v4();
-  const user = {
-    id,
+const wrapAsync = fn => (req, res, next) => fn(req, res, next).catch(next);
+
+
+async function auth(req, res, next) {
+  const matched = req.headers.authorization.match(/^Bearer (.*)$/);
+  const access_token = matched && matched[1];
+  const user = await UserService.selectOne({ access_token });
+  if (!user) throw ApiError.UnauthorizedError('invalid access_token');
+
+  req.$user = user;
+
+  return next();
+}
+
+
+router.post  ('/', wrapAsync(createUser));
+router.get   ('/', wrapAsync(auth), wrapAsync(selectUser));
+router.delete('/', wrapAsync(auth), wrapAsync(deleteUser));
+router.post  ('/session', wrapAsync(loginUser));
+router.delete('/session', wrapAsync(auth), wrapAsync(logoutUser));
+
+
+async function selectUser(req, res, next) {
+  const $user = req.$user;
+
+  res.send({
+    email: $user.email,
+  });
+}
+
+
+async function createUser(req, res, next) {
+  const exist = await UserService.selectOne({ email: req.body.email });
+  if (exist) throw ApiError.ConflictError('already signed_up');
+
+  const user = await UserService.create({
     email: req.body.email,
-    password: await bcrypt.hash(req.body.password, 10),
-    access_token: jwt.sign({ id }, jwtSecret),
-  };
-  users.push(user);
+    password: req.body.password,
+  });
 
   res.send({
     email: user.email,
     access_token: user.access_token,
   });
-});
+}
 
 
-router.delete('/', async function (req, res, next) {
-  const index = users.findIndex(user => `Bearer ${user.access_token}` == req.headers.authorization);
+async function deleteUser(req, res, next) {
+  const $user = req.$user;
 
-  if (index > -1) {
-    users.splice(index, 1);
+  await $user.$query().delete();
 
-    return res.send({
-      code: 200,
-      message: 'OK',
-    });
-  } else {
-    return res.status(401).send({
-      code: 401,
-      message: 'invalid access_token',
-    });
-  }
-});
+  return res.send({
+    code: 200,
+    message: 'OK',
+  });
+}
 
 
-router.post('/session', async function (req, res, next) {
-  const user = users.find(user => user.email == req.body.email);
-  if (!user) {
-    return res.status(401).send({
-      code: 401,
-      message: 'email/password mismatch(0)',
-    });
-  }
-
-  const match = await bcrypt.compare(req.body.password, user.password);
-  if (match) {
-    user.access_token = jwt.sign({ id: user.id }, jwtSecret),
-
-    res.send({
-      email: user.email,
-      access_token: user.access_token,
-    });
-  } else {
-    res.status(401).send({
-      code: 401,
-      message: 'email/password mismatch(1)',
-    });
-  }
-});
-
-
-router.delete('/session', async function (req, res, next) {
-  const user = users.find(user => `Bearer ${user.access_token}` == req.headers.authorization);
-
-  if (user) {
-    user.access_token = null;
-
-    return res.send({
-      code: 200,
-      message: 'OK',
-    });
-  } else {
-    return res.status(401).send({
-      code: 401,
-      message: 'invalid access_token',
-    });
-  }
-});
-
-
-router.get('/', async function (req, res, next) {
-  const user = users.find(user => `Bearer ${user.access_token}` == req.headers.authorization);
-  if (!user) {
-    return res.status(401).send({
-      code: 401,
-      message: 'invalid access_token',
-    });
-  }
+async function loginUser(req, res, next) {
+  const user = await UserService.login({ email: req.body.email, password: req.body.password });
 
   res.send({
     email: user.email,
+    access_token: user.access_token,
   });
-});
+}
+
+
+async function logoutUser(req, res, next) {
+  const $user = req.$user;
+
+  await $user.$query().patch({ access_token: null });
+
+  return res.send({
+    code: 200,
+    message: 'OK',
+  });
+}
+
 
 
 module.exports = router;
